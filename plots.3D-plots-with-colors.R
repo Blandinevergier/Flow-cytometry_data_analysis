@@ -12,7 +12,7 @@
 	img.path <- '/Users/bland/Desktop/Flow-cytometry_data/Output/Figures/Plots/3D_plots/' #Path of the folder containing the PDF Files for the results
 	csv.name <- "_Abundance_with_all_info_results.csv" #Name of the CSV file containing the results
 	pdf.name <- "_Plots_with_gating.pdf" #Name of the pdf containing the plots with the gates
-	liste.stations <- c('LB2', 'LB8') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
+	liste.stations <- c('FX5') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
 	today <- '20180615'
 	
 	#MINIMAL NUMBER OF BEADS AND EVENT
@@ -30,6 +30,8 @@
 	NoisePE.max <- 2 #Maximal value of the noise in PE.A
 	NoiseChl.min <- 0 #Minimal value of the noise in Chlorophyll.A
 	NoiseChl.max <- 3.15 #Maximal value of the noise in Chlorophyll.A
+	NoiseSSC.min <- 0 #Minimal value of the noise in SSC.A
+	NoiseSSC.max <- 2 #Maximal value of the noise in SSC.A
 	
 	#BEADS GATE
 	BeadsSyb.min <- 5 #Minimal value of the beads gate in SybrGreen.A
@@ -169,9 +171,20 @@ Make.3Dplot <- function(Station.flowFrame, Beads.flowFrame, Noise.flowFrame, X.i
 	
 	matr$Gate <- as.factor(matr$Gate)
 	
+				NbEvent <- nrow(Station.flowFrame) + nrow(Beads.flowFrame) + nrow(Noise.flowFrame)
+				NbBeads <- nrow(Beads.flowFrame)
+				NbNoise <- nrow(Noise.flowFrame)
+				
+				if (NbEvent > minEvents && NbBeads > minBeads){
+					Abond <- ((NbEvent-NbBeads-NbNoise)/(NbBeads/1080000))
+					
+					}else{
+					Abond <- "ERROR"
+					}
+				
 	
 	plt3D <- scatter3d(x = matr[,X.index], y = matr[,Y.index], z = matr[,Z.index], xlab=xlabel, ylab=ylabel, zlab=zlabel, sphere.size=0.1, groups = matr$Gate, surface.col=c("darkorange1","steelblue4","snow3"), axis.col=c("black","black","black"), surface=FALSE)
-	+ legend3d("topright", legend = c(titre, ' ', 'Beads', 'Microbes communities', 'Background noise'), pch = 16, col = c("white","white","darkorange1","steelblue4","snow3"), cex=1, inset=c(0.02))
+	+ legend3d("topright", legend = c(paste(titre, ' (', NbEvent,' events)'), ' ', paste('Beads (',NbBeads, ' events)', sep=""), paste('Microbes communities (', nrow(Station.flowFrame), ' events)', sep=""), paste('Background noise (', NbNoise, ' events)', sep=""), ' ', paste('Cell concentration : ', Abond, ' events/mL', sep="")), pch = 16, col = c("white","white","darkorange1","steelblue4","snow3","white","white"), cex=1, inset=c(0.02))
 	
 	
 	return(plt3D)
@@ -197,7 +210,8 @@ Make.3Dplot <- function(Station.flowFrame, Beads.flowFrame, Noise.flowFrame, X.i
 	NoiseSyb.Gate <- rectangleGate(filterId="Noise","SybrGreen.A"=c(NoiseSyb.min, NoiseSyb.max))
 	NoisePE.Gate <- rectangleGate(filterId="Noise","PE.A"=c(NoisePE.min, NoisePE.max))
 	NoiseChl.Gate <- rectangleGate(filterId="Noise","Chlorophyll.A"=c(NoiseChl.min, NoiseChl.max))
-	Noise.Gate <- NoiseSyb.Gate & NoisePE.Gate & NoiseChl.Gate
+	NoiseSSC.Gate <- rectangleGate(filterId="Noise","SSC.A"=c(NoiseSSC.min, NoiseSSC.max))
+	Noise.Gate <- NoiseSyb.Gate & NoisePE.Gate & NoiseChl.Gate & NoiseSSC.Gate 
 	
 ###WITHOUT BEADS AND NOISE
 
@@ -302,6 +316,8 @@ Make.3Dplot <- function(Station.flowFrame, Beads.flowFrame, Noise.flowFrame, X.i
 	results <- cbind(Samp.Name, stn.lane, stn.name, stn.id, stn.lat, stn.lon, stn.max.depth, Smp.depth, Nb.Totevent, Nb.beads, Nb.Noise, Pourc.Noise, Abundance)
 	#write.csv(results,csv.name)
 	
+	
+###CREATION OF 3D PLOTS
 index <- 1	
 	
 	for (station in 1:length(liste.stations)) {
