@@ -12,8 +12,8 @@
 	img.path <- '/Users/bland/Desktop/Flow-cytometry_data/Output/Figures/Plots/3D_plots/' #Path of the folder containing the PDF Files for the results
 	csv.name <- "_Abundance_with_all_info_results.csv" #Name of the CSV file containing the results
 	pdf.name <- "_Plots_with_gating.pdf" #Name of the pdf containing the plots with the gates
-	liste.stations <- c('LB2') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
-	today <- '20180613'
+	liste.stations <- c('LB2', 'LB8') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
+	today <- '20180615'
 	
 	#MINIMAL NUMBER OF BEADS AND EVENT
 	minEvents <- 9999 #minimal number of events
@@ -140,7 +140,7 @@ FFtoDF <-function(FF){
   }
 }
 
-Make.3Dplot <- function(Station.flowFrame, Beads.flowFrame, Noise.flowFrame, X.index, Y.index, Z.index, xlabel, ylabel, zlabel){ ###This function allows to create a 3D scatter plot from a flowframe
+Make.3Dplot <- function(Station.flowFrame, Beads.flowFrame, Noise.flowFrame, X.index, Y.index, Z.index, xlabel, ylabel, zlabel, titre){ ###This function allows to create a 3D scatter plot from a flowframe
 
 	AllStation <- FFtoDF(Station.flowFrame)
 	Allevent <- rep("Entire sample",length(AllStation[,1]))
@@ -170,8 +170,10 @@ Make.3Dplot <- function(Station.flowFrame, Beads.flowFrame, Noise.flowFrame, X.i
 	matr$Gate <- as.factor(matr$Gate)
 	
 	
-	plt3D <- scatter3d(x = matr[,X.index], y = matr[,Y.index], z = matr[,Z.index], xlab=xlabel, ylab=ylabel, zlab=zlabel, sphere.size=0.1, groups = matr$Gate, surface.col=c("blue","green3","black"), axis.col=c("black","black","black"), surface=FALSE)
-
+	plt3D <- scatter3d(x = matr[,X.index], y = matr[,Y.index], z = matr[,Z.index], xlab=xlabel, ylab=ylabel, zlab=zlabel, sphere.size=0.1, groups = matr$Gate, surface.col=c("darkorange1","steelblue4","snow3"), axis.col=c("black","black","black"), surface=FALSE)
+	+ legend3d("topright", legend = c(titre, ' ', 'Beads', 'Microbes communities', 'Background noise'), pch = 16, col = c("white","white","darkorange1","steelblue4","snow3"), cex=1, inset=c(0.02))
+	
+	
 	return(plt3D)
  
 }
@@ -300,6 +302,8 @@ Make.3Dplot <- function(Station.flowFrame, Beads.flowFrame, Noise.flowFrame, X.i
 	results <- cbind(Samp.Name, stn.lane, stn.name, stn.id, stn.lat, stn.lon, stn.max.depth, Smp.depth, Nb.Totevent, Nb.beads, Nb.Noise, Pourc.Noise, Abundance)
 	#write.csv(results,csv.name)
 	
+index <- 1	
+	
 	for (station in 1:length(liste.stations)) {
 
 	path3D <- paste(img.path, liste.stations[station], sep="")
@@ -311,19 +315,20 @@ Make.3Dplot <- function(Station.flowFrame, Beads.flowFrame, Noise.flowFrame, X.i
 	print(dir.create(path3D2))
 	
 		for (prof in 1:length(Station.frames[[station]])) {
+		
+				index <- index + 1
 				
 				print(par3d(windowRect = 50 + c(0,0,640,640)))
 				
-				print(Make.3Dplot(Station.frames[[station]][[prof]], Beads.frames[[station]][[prof]], Noise.frames[[station]][[prof]], "SSC.A", "SybrGreen.A", "PE.A", "log(SSC.A)	[arbitratry unit]", "log(SyberGreen.A)	[arbitratry unit]", "log(PE.A)	[arbitratry unit]"))
-				print(writeWebGL(filename = paste(path3D1, "/",today, "_3Dplot_SSC-SybrGreen-PE_", liste.stations[station], "_", Smp.depth[station+prof], ".html", sep="")))
+				print(Make.3Dplot(Station.frames[[station]][[prof]], Beads.frames[[station]][[prof]], Noise.frames[[station]][[prof]], "SSC.A", "SybrGreen.A", "PE.A", "log(SSC.A) [arbitratry unit]", "log(SyberGreen.A) [arbitratry unit]", "log(PE.A) [arbitratry unit]", paste("3D plot of the sample ", liste.stations[station], "_", Smp.depth[index], sep="")))
+				print(writeWebGL(filename = paste(path3D1, "/",today, "_3Dplot_SSC-SybrGreen-PE_", liste.stations[station], "_", Smp.depth[index], ".html", sep="")))
 				
-				print(Make.3Dplot(Station.frames[[station]][[prof]], Beads.frames[[station]][[prof]], Noise.frames[[station]][[prof]], "Chlorophyll.A", "SybrGreen.A", "PE.A", "log(Chlorophyll.A)	[arbitratry unit]", "log(SyberGreen.A)	[arbitratry unit]", "log(PE.A)	[arbitratry unit]"))
-				print(writeWebGL(filename = paste(path3D2, "/",today, "_3Dplot_Chlorophyll-SybrGreen-PE_", liste.stations[station], "_", Smp.depth[station+prof], ".html", sep="")))
+				print(Make.3Dplot(Station.frames[[station]][[prof]], Beads.frames[[station]][[prof]], Noise.frames[[station]][[prof]], "Chlorophyll.A", "SybrGreen.A", "PE.A", "log(Chlorophyll.A) [arbitratry unit]", "log(SyberGreen.A) [arbitratry unit]", "log(PE.A) [arbitratry unit]", paste("3D plot of the sample ", liste.stations[station], "_", Smp.depth[index], sep="")))
+				print(writeWebGL(filename = paste(path3D2, "/",today, "_3Dplot_Chlorophyll-SybrGreen-PE_", liste.stations[station], "_", Smp.depth[index], ".html", sep="")))
 				
 				
 			}
 		
 		
 	}
-
 
