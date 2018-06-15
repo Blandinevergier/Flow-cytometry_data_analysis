@@ -184,7 +184,7 @@ Make.3Dplot <- function(Station.flowFrame, Beads.flowFrame, Noise.flowFrame, X.i
 				
 	
 	plt3D <- scatter3d(x = matr[,X.index], y = matr[,Y.index], z = matr[,Z.index], xlab=xlabel, ylab=ylabel, zlab=zlabel, sphere.size=0.1, groups = matr$Gate, surface.col=c("darkorange1","steelblue4","snow3"), axis.col=c("black","black","black"), surface=FALSE)
-	+ legend3d("topright", legend = c(paste(titre, ' (', NbEvent,' events)'), ' ', paste('Beads (',NbBeads, ' events)', sep=""), paste('Microbes communities (', nrow(Station.flowFrame), ' events)', sep=""), paste('Background noise (', NbNoise, ' events)', sep=""), ' ', paste('Cell concentration : ', Abond, ' events/mL', sep="")), pch = 16, col = c("white","white","darkorange1","steelblue4","snow3","white","white"), cex=1, inset=c(0.02))
+	+ legend3d("topright", legend = c(paste(titre, ' (', NbEvent,' events)', sep=""), ' ', paste('Beads (',NbBeads, ' events)', sep=""), paste('Microbes communities (', nrow(Station.flowFrame), ' events)', sep=""), paste('Background noise (', NbNoise, ' events)', sep=""), ' ', paste('Cell concentration : ', Abond, ' events/mL', sep="")), pch = 16, col = c("white","white","darkorange1","steelblue4","snow3","white","white"), cex=1, inset=c(0.02))
 	
 	
 	return(plt3D)
@@ -334,7 +334,7 @@ index <- 1
 		
 				index <- index + 1
 				
-				print(par3d(windowRect = 50 + c(0,0,640,640)))
+				print(par3d(windowRect = 50 + c(0,0,940,740)))
 				
 				print(Make.3Dplot(Station.frames[[station]][[prof]], Beads.frames[[station]][[prof]], Noise.frames[[station]][[prof]], "SSC.A", "SybrGreen.A", "PE.A", "log(SSC.A) [arbitratry unit]", "log(SyberGreen.A) [arbitratry unit]", "log(PE.A) [arbitratry unit]", paste("3D plot of the sample ", liste.stations[station], "_", Smp.depth[index], sep="")))
 				print(writeWebGL(filename = paste(path3D1, "/",today, "_3Dplot_SSC-SybrGreen-PE_", liste.stations[station], "_", Smp.depth[index], ".html", sep="")))
