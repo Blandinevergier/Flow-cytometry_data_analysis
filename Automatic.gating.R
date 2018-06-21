@@ -13,7 +13,7 @@
 	img.path <- '/Users/bland/Desktop/Flow-cytometry_data/Output/Figures/Plots/3D_plots/' #Path of the folder containing the PDF Files for the results
 	csv.name <- "_Abundance_with_all_info_results.csv" #Name of the CSV file containing the results
 	pdf.name <- "_Plots_with_gating.pdf" #Name of the pdf containing the plots with the gates
-	liste.stations <- c('FX5') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
+	liste.stations <- c('LB2') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
 	today <- '20180615'
 	
 	#MINIMAL NUMBER OF BEADS AND EVENT
@@ -41,7 +41,7 @@
 ###FUNCTIONS =====================================================================
 
 
-Sort.Files <- function(listouille, max.depth) {  ##This function returns the list of the sorted files
+Sort.Files <- function(listouille, max.depth) {  ###This function returns the list of the sorted files
 
 	List.sorted <- c()
 	
@@ -126,6 +126,59 @@ FFtoDF <-function(FF){
   }
 }
 
+Cluster.Gating <- function(Flowframe, list.parameters){ ###This function performs automated gating based on a clustering approach
+
+	barcode <- FFtoDF(Flowframe) #The input needs to be converted into a dataframe object
+
+	list.toRemove <- c()
+
+	for(para in 1:length(list.parameters)){
+		
+		list.toRemove <- append(list.toRemove, grep("Inf", barcode[,list.parameters[para]],value = FALSE))
+		list.toRemove <- append(list.toRemove, grep("NaN", barcode[,list.parameters[para]],value = FALSE))
+		list.toRemove <- append(list.toRemove, grep("NA", barcode[,list.parameters[para]],value = FALSE))
+		
+	}
+	
+	if(length(list.toRemove)>0){
+	
+		barcode <- barcode[-list.toRemove,] ### Remove rows containing "Inf", "NaN" and "NA" value
+		
+	}
+	
+	fp2 <- flowPeaks(barcode[,list.parameters])
+	fpc <- assign.flowPeaks(fp2,fp2$x)
+	barcode$gate <- paste("Gate ", fpc, sep="")
+	
+	for(NG in 1:13){
+
+	barcode[barcode==paste("Gate -",NG, sep="")] <- "A Non-gated"
+	
+	}
+	
+	
+	return(barcode)
+
+}
+
+Find.BandN.Gate <- function(barcode1){
+
+	barcode <- barcode1
+	
+	barcode$gate <- as.factor(barcode$gate)
+	
+	coucou <- aggregate(SybrGreen.A ~ gate, barcode, FUN=mean)
+	coucoutruc <- as.vector(coucou$gate)
+	levels(barcode$gate)[levels(barcode$gate)==coucoutruc[which.max(coucou[,'SybrGreen.A'])]] <- "B Beads gate" ###determine the beads gate
+
+	coucou <- aggregate(PE.A ~ gate, barcode, FUN=mean)
+	coucoutruc <- as.vector(coucou$gate)
+	levels(barcode$gate)[levels(barcode$gate)==coucoutruc[which.min(coucou[,'PE.A'])]] <- "C Noise gate" ###determine the noise gate
+
+	return(barcode)
+	
+	}
+
 Make.3Dplot <- function(Station.flowFrame, Beads.flowFrame, Noise.flowFrame, X.index, Y.index, Z.index, xlabel, ylabel, zlabel, titre){ ###This function allows to create a 3D scatter plot from a flowframe
 
 	AllStation <- FFtoDF(Station.flowFrame)
@@ -175,6 +228,24 @@ Make.3Dplot <- function(Station.flowFrame, Beads.flowFrame, Noise.flowFrame, X.i
  
 }
 
+get.color <- function(Dataframe){ ###This function attribute a color to each gate
+
+color1 <- levels(Dataframe$gate)
+color1[color1=="A Non-gated"] <- "black"
+color1[color1=="B Beads gate"] <- "orangered"
+color1[color1=="C Noise gate"] <- "gray80"
+
+other.gate.colors <- c("royalblue","royalblue1","royalblue2","royalblue3","royalblue4", "dodgerblue4", "dodgerblue3", "slateblue","slateblue1","slateblue2", "slateblue3", "slateblue4", "dodgerblue2") 
+
+for(ind in 1:length(color1)){
+
+color1[color1==paste("Gate ", ind, sep="")] <- other.gate.colors[ind]
+
+}
+
+return(color1)
+
+}
 
 ###===============================================================================
 	
@@ -210,24 +281,22 @@ Make.3Dplot <- function(Station.flowFrame, Beads.flowFrame, Noise.flowFrame, X.i
 		
 	}
 
-barcode <- FFtoDF(Station.frames[[1]][[1]])
+gate.dataframe <- Cluster.Gating(Station.frames[[1]][[7]], c("SSC.A","SybrGreen.A", "PE.A","Chlorophyll.A"))
 
-list.toRemove <- grep("Inf", barcode[,'SSC.A'],value = FALSE)
-list.toRemove <- append(list.toRemove, grep("Inf", barcode[,'Chlorophyll.A'],value = FALSE))
-list.toRemove <- append(list.toRemove, grep("NaN", barcode[,'SSC.A'],value = FALSE))
-list.toRemove <- append(list.toRemove, grep("NaN", barcode[,'Chlorophyll.A'],value = FALSE))
+list.toRemove <- c()
+		
+		list.toRemove <- append(list.toRemove, grep("Inf", gate.dataframe[,"PE.A"],value = FALSE))
+		list.toRemove <- append(list.toRemove, grep("NaN", gate.dataframe[,"PE.A"],value = FALSE))
+		list.toRemove <- append(list.toRemove, grep("NA", gate.dataframe[,"PE.A"],value = FALSE))
+		
 	
 	if(length(list.toRemove)>0){
 	
-		barcode <- barcode[-list.toRemove,] ### Remove rows containing "Inf" value
+		gate.dataframe <- gate.dataframe[-list.toRemove,] ### Remove rows containing "Inf", "NaN" and "NA" value
 		
 	}
 
+gate.dataframe <- Find.BandN.Gate(gate.dataframe)
 
-fp2 <- flowPeaks(barcode[,c('SSC.A', 'Chlorophyll.A')])
-fpc <- assign.flowPeaks(fp2,fp2$x)
-
-plot(fp2, classlab=fpc,drawboundary=FALSE,drawvor=FALSE,drawkmeans=FALSE,drawlab=TRUE)
-
-barcode$gate <- fpc
+scatter3d(x = gate.dataframe[,"SSC.A"], y = gate.dataframe[,"Chlorophyll.A"], z = gate.dataframe[,"SybrGreen.A"], xlab="SSC.A", ylab="Chlorophyll.A", zlab="SybrGreen.A", sphere.size=0.1, groups = gate.dataframe$gate, axis.col=c("black","black","black"), surface.col=get.color(gate.dataframe), surface=FALSE)
 
