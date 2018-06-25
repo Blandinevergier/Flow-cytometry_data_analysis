@@ -9,12 +9,12 @@
 ###VARIABLES
 
 	Folder.path <- '/Users/bland/Desktop/Flow-cytometry_data/Input/' #Path of the folder containing the FCS Files
-	csv.path <- '/Users/bland/Desktop/Flow-cytometry_data/Output/Dataframe/' #Path of the folder containing the csv file for the results
+	csv.path <- '/Users/bland/Desktop/Flow-cytometry_data/Output/Dataframe/' #Path of the folder containing the csv file for the results 
 	img.path <- '/Users/bland/Desktop/Flow-cytometry_data/Output/Figures/Plots/3D_plots/' #Path of the folder containing the PDF Files for the results
-	csv.name <- "_Abundance_with_all_info_results.csv" #Name of the CSV file containing the results
+	csv.name <- "_Summary_after_automatic_gating.csv" #Name of the CSV file containing the results
 	pdf.name <- "_Plots_with_gating.pdf" #Name of the pdf containing the plots with the gates
-	liste.stations <- c('LB2') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
-	today <- '20180615'
+	liste.stations <- c('LB8') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
+	today <- '20180625'
 	
 	#MINIMAL NUMBER OF BEADS AND EVENT
 	minEvents <- 9999 #minimal number of events
@@ -152,7 +152,7 @@ Cluster.Gating <- function(Flowframe, list.parameters){ ###This function perform
 	
 	for(NG in 1:13){
 
-	barcode[barcode==paste("Gate -",NG, sep="")] <- "A Non-gated"
+	barcode[barcode==paste("Gate -",NG, sep="")] <- "Non-gated"
 	
 	}
 	
@@ -169,11 +169,11 @@ Find.BandN.Gate <- function(barcode1){
 	
 	coucou <- aggregate(SybrGreen.A ~ gate, barcode, FUN=mean)
 	coucoutruc <- as.vector(coucou$gate)
-	levels(barcode$gate)[levels(barcode$gate)==coucoutruc[which.max(coucou[,'SybrGreen.A'])]] <- "B Beads gate" ###determine the beads gate
+	levels(barcode$gate)[levels(barcode$gate)==coucoutruc[which.max(coucou[,'SybrGreen.A'])]] <- "Beads gate" ###determine the beads gate
 
 	coucou <- aggregate(PE.A ~ gate, barcode, FUN=mean)
 	coucoutruc <- as.vector(coucou$gate)
-	levels(barcode$gate)[levels(barcode$gate)==coucoutruc[which.min(coucou[,'PE.A'])]] <- "C Noise gate" ###determine the noise gate
+	levels(barcode$gate)[levels(barcode$gate)==coucoutruc[which.min(coucou[,'PE.A'])]] <- "Noise gate" ###determine the noise gate
 
 	return(barcode)
 	
@@ -183,9 +183,9 @@ Find.BandN.Gate <- function(barcode1){
 get.color <- function(Dataframe){ ###This function attribute a color to each gate
 
 color1 <- levels(Dataframe$gate)
-color1[color1=="A Non-gated"] <- "black"
-color1[color1=="B Beads gate"] <- "orangered"
-color1[color1=="C Noise gate"] <- "gray80"
+color1[color1=="Non-gated"] <- "black"
+color1[color1=="Beads gate"] <- "orangered"
+color1[color1=="Noise gate"] <- "gray80"
 
 other.gate.colors <- c("royalblue","royalblue1","royalblue2","royalblue3","royalblue4", "dodgerblue4", "dodgerblue3", "slateblue","slateblue1","slateblue2", "slateblue3", "slateblue4", "dodgerblue2") 
 
@@ -209,8 +209,8 @@ return(color1)
 ###CREATION OF FLOWSET (ONE PER STATION)
 	Station.frames <- c()
 	
-	Samp.Name <- c("Name of the FCS file") #List containing the names of all the analysed files
-	Smp.depth <- c("Depth (in meters)")
+	Samp.Name <- c() #List containing the names of all the analysed files
+	Smp.depth <- c()
 	
 	for (station.index in 1:length(liste.stations)) {
 		
@@ -233,12 +233,103 @@ return(color1)
 		
 	}
 
-gate.dataframe <- Cluster.Gating(Station.frames[[1]][[7]], c("SSC.A","SybrGreen.A", "PE.A","Chlorophyll.A"))
+###INITIALISATION OF THE VECTORS CONTAINING THE DATA 	
+beads.count <- c()
+noise.count <- c()
+total.count <- c()
+stn.lane <- c()
+stn.name <- c()
+stn.id <- c()
+stn.lat <- c()
+stn.lon <- c()
+stn.max.depth <- c()	
+
+	
+###FILLING OF THE DIFFERENT LISTS CONTAINING THE INFORMATIONS (station names, depths, localisation, abundance...)
+	for (station in 1:length(liste.stations)) {
+	
+	ind <- match(liste.stations[station],stn.id.list)
+	
+		for (prof in 1:length(Station.frames[[station]])) {
+				
+				stn.lane <- append(stn.lane, stn.lane.list[ind])
+				stn.name <- append(stn.name, stn.name.list[ind])
+				stn.id <- append(stn.id, stn.id.list[ind])
+				stn.lat <- append(stn.lat, stn.lat.list[ind])
+				stn.lon <- append(stn.lon, stn.lon.list[ind])
+				stn.max.depth <- append(stn.max.depth, stn.max.depth.list[ind])
+				
+				
+				
+				
+			}
+		
+		
+	}
+
+Index <- 0
+
+datepath <- paste(img.path, today, sep="")
+print(dir.create(datepath))
+
+for (station in 1:length(liste.stations)) {
 
 
-gate.dataframe <- Find.BandN.Gate(gate.dataframe)
+path3D <- paste(datepath, "/", liste.stations[station], sep="")
+path3D1 <- paste(path3D,"/SSC_vs_Chlorophyll_vs_SybrGreen", sep="")
+path3D2 <- paste(path3D,"/SSC_vs_SYBRGREEN_vs_PE", sep="")
+path3D3 <- paste(path3D,"/Chlorophyll_vs_SYBRGREEN_vs_PE", sep="")
+	
+	
+ 	print(dir.create(path3D))
+	print(dir.create(path3D1))
+	print(dir.create(path3D2))
+	print(dir.create(path3D3))
+	
+	
+		for (prof in 1:length(Station.frames[[station]])) {
+		
+		Index <- Index + 1
+
+			gate.dataframe <- Cluster.Gating(Station.frames[[station]][[prof]], c("PE.A","SSC.A", "Chlorophyll.A", "SybrGreen.A"))
+			
+
+			gate.dataframe <- Find.BandN.Gate(gate.dataframe)
+
+			tr <- table(gate.dataframe$gate)
+
+			beads.count <- append(beads.count, as.numeric(tr["Beads gate"]))
+			noise.count <- append(noise.count, as.numeric(tr["Noise gate"]))
+			total.count <- append(total.count, nrow(gate.dataframe))
+			abond <- (nrow(gate.dataframe) - as.numeric(tr["Noise gate"]) - as.numeric(tr["Beads gate"]))/((as.numeric(tr["Beads gate"]))/1080000)
+			
+			print(par3d(windowRect = 50 + c(0,0,940,740)))
+				
+				plot3dd <- scatter3d(x = gate.dataframe[,"SSC.A"], y = gate.dataframe[,"Chlorophyll.A"], z = gate.dataframe[,"SybrGreen.A"], xlab="log(SSC.A) [arbitratry unit]", ylab="log(Chlorophyll.A) [arbitratry unit]", zlab="log(SybrGreen.A) [arbitratry unit]", sphere.size=0.1, groups = gate.dataframe$gate, axis.col=c("black","black","black"), surface.col=get.color(gate.dataframe), surface=FALSE)
+				+ legend3d("topright", legend = c(paste(stn.id[Index],"_", Smp.depth[Index], " (", total.count[Index], " events)", sep=""), " ", levels(gate.dataframe$gate), " ", paste("beads count : ", beads.count[Index], sep=""), paste("Abundance : ", abond, " events/mL", sep="")), pch = 16, col = c("white", "white", get.color(gate.dataframe), "white","white","white"), cex=1, inset=c(0.01))
+				print(plot3dd)
+				print(writeWebGL(filename = paste(path3D1, "/",today, "_3Dplot_SSC-Chlorophyll-SybrGreen_", liste.stations[station], "_", Smp.depth[Index], ".html", sep="")))
+				
+				plot3dd <- scatter3d(x = gate.dataframe[,"SSC.A"], y = gate.dataframe[,"PE.A"], z = gate.dataframe[,"SybrGreen.A"], xlab="log(SSC.A) [arbitratry unit]", ylab="log(PE.A) [arbitratry unit]", zlab="log(SybrGreen.A) [arbitratry unit]", sphere.size=0.1, groups = gate.dataframe$gate, axis.col=c("black","black","black"), surface.col=get.color(gate.dataframe), surface=FALSE)
+				+ legend3d("topright", legend = c(paste(stn.id[Index],"_", Smp.depth[Index], " (", total.count[Index], " events)", sep=""), " ", levels(gate.dataframe$gate), " ", paste("beads count : ", beads.count[Index], sep=""), paste("Abundance : ", abond, " events/mL", sep="")), pch = 16, col = c("white", "white", get.color(gate.dataframe), "white","white","white"), cex=1, inset=c(0.01))
+				print(plot3dd)
+				print(writeWebGL(filename = paste(path3D2, "/",today, "_3Dplot_SSC-SYBRGREEN-PE_", liste.stations[station], "_", Smp.depth[Index], ".html", sep="")))
+				
+				plot3dd <- scatter3d(x = gate.dataframe[,"PE.A"], y = gate.dataframe[,"Chlorophyll.A"], z = gate.dataframe[,"SybrGreen.A"], xlab="log(PE.A) [arbitratry unit]", ylab="log(Chlorophyll.A) [arbitratry unit]", zlab="log(SybrGreen.A) [arbitratry unit]", sphere.size=0.1, groups = gate.dataframe$gate, axis.col=c("black","black","black"), surface.col=get.color(gate.dataframe), surface=FALSE)
+				+ legend3d("topright", legend = c(paste(stn.id[Index],"_", Smp.depth[Index], " (", total.count[Index], " events)", sep=""), " ", levels(gate.dataframe$gate), " ", paste("beads count : ", beads.count[Index], sep=""), paste("Abundance : ", abond, " events/mL", sep="")), pch = 16, col = c("white", "white", get.color(gate.dataframe), "white","white","white"), cex=1, inset=c(0.01))
+				print(plot3dd)
+				print(writeWebGL(filename = paste(path3D3, "/",today, "_3Dplot_Chlorophyll-SYBRGREEN-PE_", liste.stations[station], "_", Smp.depth[Index], ".html", sep="")))
+				
+			
+		}
+
+}
+
+Abundance <- (total.count - noise.count - beads.count)/(beads.count/1080000)
+
+###CREATION OF A CSV FILE TO STORE THE DATA	
+	csv.name <- paste(csv.path, today, csv.name, sep="")
+	results <- cbind(Samp.Name, stn.lane, stn.name, stn.id, stn.lat, stn.lon, stn.max.depth, Smp.depth, total.count, beads.count, noise.count, Abundance)
+	#write.csv(results,csv.name)	
 
 
-plot3dd <- scatter3d(x = gate.dataframe[,"SSC.A"], y = gate.dataframe[,"Chlorophyll.A"], z = gate.dataframe[,"SybrGreen.A"], xlab="SSC.A", ylab="Chlorophyll.A", zlab="SybrGreen.A", sphere.size=0.1, groups = gate.dataframe$gate, axis.col=c("black","black","black"), surface.col=get.color(gate.dataframe), surface=FALSE)
-+ legend3d("topright", legend = levels(gate.dataframe$gate), pch = 16, col = get.color(gate.dataframe), cex=1, inset=c(0.01))
-plot3dd
