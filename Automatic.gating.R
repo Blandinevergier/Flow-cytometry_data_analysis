@@ -119,23 +119,6 @@ FFtoDF <-function(FF){
         warning(paste("Object at index",i,"not of type flowFrame"))
       }
     }
-	
-	list.toRemove <- c()
-
-	for(para in 1:ncol(frameList)){
-		
-		list.toRemove <- append(list.toRemove, grep("Inf", frameList[,para],value = FALSE))
-		list.toRemove <- append(list.toRemove, grep("NaN", frameList[,para],value = FALSE))
-		list.toRemove <- append(list.toRemove, grep("NA", frameList[,para],value = FALSE))
-		
-	}
-	
-	if(length(list.toRemove)>0){
-	
-		frameList <- frameList[-list.toRemove,] ### Remove rows containing "Inf", "NaN" and "NA" value
-		
-	}
-	
     return(frameList)
   }
   else {
@@ -146,6 +129,22 @@ FFtoDF <-function(FF){
 Cluster.Gating <- function(Flowframe, list.parameters){ ###This function performs automated gating based on a clustering approach
 
 	barcode <- FFtoDF(Flowframe) #The input needs to be converted into a dataframe object
+
+	list.toRemove <- c()
+
+	for(para in 1:length(to.transform)){
+		
+		list.toRemove <- append(list.toRemove, grep("Inf", barcode[,to.transform[para]],value = FALSE))
+		list.toRemove <- append(list.toRemove, grep("NaN", barcode[,to.transform[para]],value = FALSE))
+		list.toRemove <- append(list.toRemove, grep("NA", barcode[,to.transform[para]],value = FALSE))
+		
+	}
+	
+	if(length(list.toRemove)>0){
+	
+		barcode <- barcode[-list.toRemove,] ### Remove rows containing "Inf", "NaN" and "NA" value
+		
+	}
 	
 	fp2 <- flowPeaks(barcode[,list.parameters])
 	fpc <- assign.flowPeaks(fp2,fp2$x)
@@ -153,7 +152,7 @@ Cluster.Gating <- function(Flowframe, list.parameters){ ###This function perform
 	
 	for(NG in 1:13){
 
-	barcode[barcode==paste("Gate -",NG, sep="")] <- "Non-gated"
+	barcode[barcode==paste("Gate -",NG, sep="")] <- "A Non-gated"
 	
 	}
 	
@@ -170,60 +169,23 @@ Find.BandN.Gate <- function(barcode1){
 	
 	coucou <- aggregate(SybrGreen.A ~ gate, barcode, FUN=mean)
 	coucoutruc <- as.vector(coucou$gate)
-	levels(barcode$gate)[levels(barcode$gate)==coucoutruc[which.max(coucou[,'SybrGreen.A'])]] <- "Beads gate" ###determine the beads gate
+	levels(barcode$gate)[levels(barcode$gate)==coucoutruc[which.max(coucou[,'SybrGreen.A'])]] <- "B Beads gate" ###determine the beads gate
 
 	coucou <- aggregate(PE.A ~ gate, barcode, FUN=mean)
 	coucoutruc <- as.vector(coucou$gate)
-	levels(barcode$gate)[levels(barcode$gate)==coucoutruc[which.min(coucou[,'PE.A'])]] <- "Noise gate" ###determine the noise gate
+	levels(barcode$gate)[levels(barcode$gate)==coucoutruc[which.min(coucou[,'PE.A'])]] <- "C Noise gate" ###determine the noise gate
 
 	return(barcode)
 	
 	}
 
-Make.3Dplot <- function(Station.flowFrame, Beads.flowFrame, Noise.flowFrame, X.index, Y.index, Z.index, xlabel, ylabel, zlabel, titre){ ###This function allows to create a 3D scatter plot from a flowframe
-
-	AllStation <- FFtoDF(Station.flowFrame)
-	Allevent <- rep("Entire sample",length(AllStation[,1]))
-	AllStation$Gate <- Allevent
-	
-	AllBeads <- FFtoDF(Beads.flowFrame)
-	AllBevent <- rep("Beads",length(AllBeads[,1]))
-	AllBeads$Gate <- AllBevent
-	
-	AllNoise <- FFtoDF(Noise.flowFrame)
-	AllNevent <- rep("Noise",length(AllNoise[,1]))
-	AllNoise$Gate <- AllNevent
-	
-	matr <- rbind(AllStation, AllBeads, AllNoise)
-	
-	matr$Gate <- as.factor(matr$Gate)
-	
-				NbEvent <- nrow(Station.flowFrame) + nrow(Beads.flowFrame) + nrow(Noise.flowFrame)
-				NbBeads <- nrow(Beads.flowFrame)
-				NbNoise <- nrow(Noise.flowFrame)
-				
-				if (NbEvent > minEvents && NbBeads > minBeads){
-					Abond <- ((NbEvent-NbBeads-NbNoise)/(NbBeads/1080000))
-					
-					}else{
-					Abond <- "ERROR"
-					}
-				
-	
-	plt3D <- scatter3d(x = matr[,X.index], y = matr[,Y.index], z = matr[,Z.index], xlab=xlabel, ylab=ylabel, zlab=zlabel, sphere.size=0.1, groups = matr$Gate, surface.col=c("darkorange1","steelblue4","snow3"), axis.col=c("black","black","black"), surface=FALSE)
-	+ legend3d("topright", legend = c(paste(titre, ' (', NbEvent,' events)', sep=""), ' ', paste('Beads (',NbBeads, ' events)', sep=""), paste('Microbes communities (', nrow(Station.flowFrame), ' events)', sep=""), paste('Background noise (', NbNoise, ' events)', sep=""), ' ', paste('Cell concentration : ', Abond, ' events/mL', sep="")), pch = 16, col = c("white","white","darkorange1","steelblue4","snow3","white","white"), cex=1, inset=c(0.02))
-	
-	
-	return(plt3D)
- 
-}
 
 get.color <- function(Dataframe){ ###This function attribute a color to each gate
 
 color1 <- levels(Dataframe$gate)
-color1[color1=="Non-gated"] <- "black"
-color1[color1=="Beads gate"] <- "orangered"
-color1[color1=="Noise gate"] <- "gray80"
+color1[color1=="A Non-gated"] <- "black"
+color1[color1=="B Beads gate"] <- "orangered"
+color1[color1=="C Noise gate"] <- "gray80"
 
 other.gate.colors <- c("royalblue","royalblue1","royalblue2","royalblue3","royalblue4", "dodgerblue4", "dodgerblue3", "slateblue","slateblue1","slateblue2", "slateblue3", "slateblue4", "dodgerblue2") 
 
@@ -273,10 +235,10 @@ return(color1)
 
 gate.dataframe <- Cluster.Gating(Station.frames[[1]][[7]], c("SSC.A","SybrGreen.A", "PE.A","Chlorophyll.A"))
 
+
 gate.dataframe <- Find.BandN.Gate(gate.dataframe)
+
 
 plot3dd <- scatter3d(x = gate.dataframe[,"SSC.A"], y = gate.dataframe[,"Chlorophyll.A"], z = gate.dataframe[,"SybrGreen.A"], xlab="SSC.A", ylab="Chlorophyll.A", zlab="SybrGreen.A", sphere.size=0.1, groups = gate.dataframe$gate, axis.col=c("black","black","black"), surface.col=get.color(gate.dataframe), surface=FALSE)
 + legend3d("topright", legend = levels(gate.dataframe$gate), pch = 16, col = get.color(gate.dataframe), cex=1, inset=c(0.01))
 plot3dd
-
-#writeWebGL(filename = paste(path3D1, "/",today, "_3Dplot_SSC-SybrGreen-PE_", liste.stations[station], "_", Smp.depth[index], ".html", sep=""))
