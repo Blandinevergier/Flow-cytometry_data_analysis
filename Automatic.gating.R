@@ -13,8 +13,8 @@
 	img.path <- '/Users/bland/Desktop/Flow-cytometry_data/Output/Figures/Plots/3D_plots/' #Path of the folder containing the PDF Files for the results
 	csv.name <- "_Summary_after_automatic_gating.csv" #Name of the CSV file containing the results
 	pdf.name <- "_Plots_with_gating.pdf" #Name of the pdf containing the plots with the gates
-	liste.stations <- c('LB8') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
-	today <- '20180625'
+	liste.stations <- c('LB2') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
+	today <- '20180628'
 	
 	#MINIMAL NUMBER OF BEADS AND EVENT
 	minEvents <- 9999 #minimal number of events
@@ -101,7 +101,7 @@ Find.Depth <- function(listouille, max.depth) {  ###This function returns the li
 
 }
 
-FFtoDF <-function(FF){
+FFtoDF <-function(FF){ ###The function is able the convert a flowframe into a dataframe
 
   if(class(FF) == "flowFrame"){
     return(as.data.frame(exprs(FF)))
@@ -161,7 +161,22 @@ Cluster.Gating <- function(Flowframe, list.parameters){ ###This function perform
 
 }
 
-Find.BandN.Gate <- function(barcode1){
+Noise.MGating <- function(DF.withNoise){ ###This function is able to gate manually the noise in case of the clustering approach doesn't work
+
+Dataframe.withNoise <- DF.withNoise
+
+levels(Dataframe.withNoise$gate) <- c(levels(Dataframe.withNoise$gate), "Noise gate (manual gating)")
+
+Dataframe.withNoise$gate[which(Dataframe.withNoise$SybrGreen.A < 2 & Dataframe.withNoise$SSC.A < 2 & Dataframe.withNoise$PE.A < 2 & Dataframe.withNoise$Chlorophyll.A < 3.15)] <- "Noise gate (manual gating)"
+
+Dataframe.withNoise$gate <- as.factor(Dataframe.withNoise$gate)
+
+return(Dataframe.withNoise)
+
+
+}
+
+Find.BandN.Gate <- function(barcode1){ #This function is able to sort the different gates detected by the clustering approach
 
 	barcode <- barcode1
 	
@@ -170,24 +185,40 @@ Find.BandN.Gate <- function(barcode1){
 	coucou <- aggregate(SybrGreen.A ~ gate, barcode, FUN=mean)
 	coucoutruc <- as.vector(coucou$gate)
 	levels(barcode$gate)[levels(barcode$gate)==coucoutruc[which.max(coucou[,'SybrGreen.A'])]] <- "Beads gate" ###determine the beads gate
-
+	
+	
 	coucou <- aggregate(PE.A ~ gate, barcode, FUN=mean)
 	coucoutruc <- as.vector(coucou$gate)
 	levels(barcode$gate)[levels(barcode$gate)==coucoutruc[which.min(coucou[,'PE.A'])]] <- "Noise gate" ###determine the noise gate
 
+	
+	indou <- grep("Noise gate", barcode$gate,value = FALSE)
+	subdata <- barcode[indou,]
+	propor <- sum(subdata$SSC.A < 2 & subdata$PE.A < 2 & subdata$Chlorophyll.A < 3.15)
+	
+	if(propor < 0.7*nrow(subdata)){ #Quality control of the noise gate --> The gate will be determined manually if the clustering gating wasn't well performed
+
+	levels(barcode$gate)[levels(barcode$gate)=="Noise gate"] <- "Non-gated"
+	
+	barcode <- Noise.MGating(barcode)
+	
+	}
+	
+	barcode$gate <- as.factor(barcode$gate)
+
 	return(barcode)
 	
 	}
-
-
+	
 get.color <- function(Dataframe){ ###This function attribute a color to each gate
 
 color1 <- levels(Dataframe$gate)
 color1[color1=="Non-gated"] <- "black"
 color1[color1=="Beads gate"] <- "orangered"
 color1[color1=="Noise gate"] <- "gray80"
+color1[color1=="Noise gate (manual gating)"] <- "gray80"
 
-other.gate.colors <- c("royalblue","royalblue1","royalblue2","royalblue3","royalblue4", "dodgerblue4", "dodgerblue3", "slateblue","slateblue1","slateblue2", "slateblue3", "slateblue4", "dodgerblue2") 
+other.gate.colors <- c("darkorchid4","brown4", "royalblue4", "chartreuse4", "hotpink4","mediumpurple4", "deepskyblue4", "slateblue4", "mediumorchid4", "purple4", "steelblue4", "navyblue", "deeppink4", "dodgerblue", "cyan4") 
 
 for(ind in 1:length(color1)){
 
@@ -242,7 +273,8 @@ stn.name <- c()
 stn.id <- c()
 stn.lat <- c()
 stn.lon <- c()
-stn.max.depth <- c()	
+stn.max.depth <- c()
+Noise.gating.type <- c()	
 
 	
 ###FILLING OF THE DIFFERENT LISTS CONTAINING THE INFORMATIONS (station names, depths, localisation, abundance...)
@@ -291,17 +323,30 @@ path3D3 <- paste(path3D,"/Chlorophyll_vs_SYBRGREEN_vs_PE", sep="")
 		
 		Index <- Index + 1
 
-			gate.dataframe <- Cluster.Gating(Station.frames[[station]][[prof]], c("PE.A","SSC.A", "Chlorophyll.A", "SybrGreen.A"))
-			
+			gate.dataframe <- Cluster.Gating(Station.frames[[station]][[prof]], c("PE.A","SSC.A","SybrGreen.A","Chlorophyll.A"))
 
 			gate.dataframe <- Find.BandN.Gate(gate.dataframe)
 
 			tr <- table(gate.dataframe$gate)
 
 			beads.count <- append(beads.count, as.numeric(tr["Beads gate"]))
+			
+			if(is.element('Noise gate (manual gating)', levels(gate.dataframe$gate))==TRUE){
+
+			noise.count <- append(noise.count, as.numeric(tr['Noise gate (manual gating)']))
+			Noise.gating.type <- append(Noise.gating.type, "Manual")
+
+			}else{
+			
 			noise.count <- append(noise.count, as.numeric(tr["Noise gate"]))
+			Noise.gating.type <- append(Noise.gating.type, "Automatic")
+			
+			}
+
+			
+			
 			total.count <- append(total.count, nrow(gate.dataframe))
-			abond <- (nrow(gate.dataframe) - as.numeric(tr["Noise gate"]) - as.numeric(tr["Beads gate"]))/((as.numeric(tr["Beads gate"]))/1080000)
+			abond <- (nrow(gate.dataframe) - noise.count[Index] - as.numeric(tr["Beads gate"]))/((as.numeric(tr["Beads gate"]))/1080000)
 			
 			print(par3d(windowRect = 50 + c(0,0,940,740)))
 				
@@ -329,7 +374,7 @@ Abundance <- (total.count - noise.count - beads.count)/(beads.count/1080000)
 
 ###CREATION OF A CSV FILE TO STORE THE DATA	
 	csv.name <- paste(csv.path, today, csv.name, sep="")
-	results <- cbind(Samp.Name, stn.lane, stn.name, stn.id, stn.lat, stn.lon, stn.max.depth, Smp.depth, total.count, beads.count, noise.count, Abundance)
-	#write.csv(results,csv.name)	
+	results <- cbind(Samp.Name, stn.lane, stn.name, stn.id, stn.lat, stn.lon, stn.max.depth, Smp.depth, total.count, beads.count, noise.count, Noise.gating.type, Abundance)
+	write.csv(results,csv.name)	
 
 
