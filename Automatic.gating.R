@@ -8,13 +8,16 @@
 
 ###VARIABLES
 
-	Folder.path <- '/Users/bland/Desktop/Flow-cytometry_data/Input/' #Path of the folder containing the FCS Files
+	Folder.path <- '/Users/bland/Desktop/Flow-cytometry_data/Input2/' #Path of the folder containing the FCS Files
 	csv.path <- '/Users/bland/Desktop/Flow-cytometry_data/Output/Dataframe/' #Path of the folder containing the csv file for the results 
 	img.path <- '/Users/bland/Desktop/Flow-cytometry_data/Output/Figures/Plots/3D_plots/' #Path of the folder containing the PDF Files for the results
 	csv.name <- "_Summary_after_automatic_gating.csv" #Name of the CSV file containing the results
 	pdf.name <- "_Plots_with_gating.pdf" #Name of the pdf containing the plots with the gates
-	liste.stations <- c('LB2') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
-	today <- '20180628'
+	#liste.stations <- c('FX1', 'FX2', 'FX4', 'FX5', 'FX6', 'FX7','FX8', 'FX9','HB1','HB2','HB3','HB4','HB5','IH1','IH2', 'IH3','KG1','KG2','KG3','KG4','KG5','KG6','KR1','KR2','KR3','KR4','KR5','KR6','LA1','LA2','LA3','LA4','LA5','LA6','LA7','LA8','LB1','LB2','LB3','LB4','LB5','LB6','LB7','LB8','LB9','LB10','LN1','LN2','LN3','LN4','LN5','LN6','MS1','MS2','MS3','MS4','MS5','MS6','SB2','SB3','SB4','SI1','SI2','SI3','SI4','SI5','SI6','SI7','SI8','ST1','ST2','ST3','ST5') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
+	#liste.stations <- c('SI1','SI2','SI3','SI4','SI5','SI6','SI7','SI8','ST1','ST2','ST3','ST5') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
+	liste.stations <- c('LB2')
+	
+	today <- '20180702'
 	
 	#MINIMAL NUMBER OF BEADS AND EVENT
 	minEvents <- 9999 #minimal number of events
@@ -35,6 +38,14 @@
 	stn.lat.list <- Infos[,"stn.lat"]
 	stn.lon.list <- Infos[,"stn.lon"]
 	stn.max.depth.list <- Infos[,"stn.max.depth"]
+	
+	#MANUAL BEADS GATE
+	BeadsSyb.min <- 5 #Minimal value of the beads gate in SybrGreen.A
+	BeadsSyb.max <- 7 #Maximal value of the beads gate in SybrGreen.A
+	BeadsChl.min <- 4.5 #Minimal value of the beads gate in Chlorophyll.A
+	BeadsChl.max <- 5.5 #Maximal value of the beads gate in Chlorophyll.A
+	BeadsSSC.min <- 4.5 #Minimal value of the beads gate in SSC.A
+	BeadsSSC.max <- 5.5 #Maximal value of the beads gate in SSC.A
 
 	
 	
@@ -195,8 +206,9 @@ Find.BandN.Gate <- function(barcode1){ #This function is able to sort the differ
 	indou <- grep("Noise gate", barcode$gate,value = FALSE)
 	subdata <- barcode[indou,]
 	propor <- sum(subdata$SSC.A < 2 & subdata$PE.A < 2 & subdata$Chlorophyll.A < 3.15)
+	propor2 <- sum(barcode$SSC.A < 2 & barcode$PE.A < 2 & barcode$Chlorophyll.A < 3.15)
 	
-	if(propor < 0.7*nrow(subdata)){ #Quality control of the noise gate --> The gate will be determined manually if the clustering gating wasn't well performed
+	if(propor < 0.7*nrow(subdata) | propor < 0,7*propor2){ #Quality control of the noise gate --> The gate will be determined manually if the clustering gating wasn't well performed
 
 	levels(barcode$gate)[levels(barcode$gate)=="Noise gate"] <- "Non-gated"
 	
@@ -209,6 +221,29 @@ Find.BandN.Gate <- function(barcode1){ #This function is able to sort the differ
 	return(barcode)
 	
 	}
+	
+Manual.Gating <- function(DataF,SSCmin, SSCmax, Chlmin, Chlmax, Sybmin, Sybmax){
+
+DataF$ManualGate <- "Gate -1"
+
+levels(DataF$ManualGate) <- c("Gate -1", "Gate 1")
+
+DataF$ManualGate[which(DataF$SybrGreen.A > Sybmin & DataF$SybrGreen.A < Sybmax & DataF$Chlorophyll.A > Chlmin & DataF$Chlorophyll.A < Chlmax & DataF$SSC.A > SSCmin & DataF$SSC.A < SSCmax)] <- "Gate 1"
+
+return(DataF)
+}	
+
+Auto.Gating <- function(DataF){
+
+DataF$AutoGate <- "Gate -1"
+
+levels(DataF$AutoGate) <- c("Gate -1", "Gate 1")
+
+DataF$AutoGate[DataF$gate == "Beads gate"] <- "Gate 1"
+
+return(DataF)
+
+}
 	
 get.color <- function(Dataframe){ ###This function attribute a color to each gate
 
@@ -274,7 +309,8 @@ stn.id <- c()
 stn.lat <- c()
 stn.lon <- c()
 stn.max.depth <- c()
-Noise.gating.type <- c()	
+Noise.gating.type <- c()
+Eval.Cluster <- c()	
 
 	
 ###FILLING OF THE DIFFERENT LISTS CONTAINING THE INFORMATIONS (station names, depths, localisation, abundance...)
@@ -318,6 +354,8 @@ path3D3 <- paste(path3D,"/Chlorophyll_vs_SYBRGREEN_vs_PE", sep="")
 	print(dir.create(path3D2))
 	print(dir.create(path3D3))
 	
+	print(par3d(windowRect = 50 + c(0,0,940,740)))
+	
 	
 		for (prof in 1:length(Station.frames[[station]])) {
 		
@@ -326,6 +364,12 @@ path3D3 <- paste(path3D,"/Chlorophyll_vs_SYBRGREEN_vs_PE", sep="")
 			gate.dataframe <- Cluster.Gating(Station.frames[[station]][[prof]], c("PE.A","SSC.A","SybrGreen.A","Chlorophyll.A"))
 
 			gate.dataframe <- Find.BandN.Gate(gate.dataframe)
+			
+			gate.dataframe <- Manual.Gating(gate.dataframe,BeadsSSC.min, BeadsSSC.max, BeadsChl.min, BeadsChl.max, BeadsSyb.min, BeadsSyb.max)
+
+			gate.dataframe <- Auto.Gating(gate.dataframe)
+			
+			Eval.Cluster <- append(Eval.Cluster, evalCluster(gate.dataframe$ManualGate,gate.dataframe$AutoGate,method="Vmeasure"))
 
 			tr <- table(gate.dataframe$gate)
 
@@ -334,12 +378,12 @@ path3D3 <- paste(path3D,"/Chlorophyll_vs_SYBRGREEN_vs_PE", sep="")
 			if(is.element('Noise gate (manual gating)', levels(gate.dataframe$gate))==TRUE){
 
 			noise.count <- append(noise.count, as.numeric(tr['Noise gate (manual gating)']))
-			Noise.gating.type <- append(Noise.gating.type, "Manual")
+			Noise.gating.type <- append(Noise.gating.type, "corrected")
 
 			}else{
 			
 			noise.count <- append(noise.count, as.numeric(tr["Noise gate"]))
-			Noise.gating.type <- append(Noise.gating.type, "Automatic")
+			Noise.gating.type <- append(Noise.gating.type, "Without correction")
 			
 			}
 
@@ -348,7 +392,7 @@ path3D3 <- paste(path3D,"/Chlorophyll_vs_SYBRGREEN_vs_PE", sep="")
 			total.count <- append(total.count, nrow(gate.dataframe))
 			abond <- (nrow(gate.dataframe) - noise.count[Index] - as.numeric(tr["Beads gate"]))/((as.numeric(tr["Beads gate"]))/1080000)
 			
-			print(par3d(windowRect = 50 + c(0,0,940,740)))
+			
 				
 				plot3dd <- scatter3d(x = gate.dataframe[,"SSC.A"], y = gate.dataframe[,"Chlorophyll.A"], z = gate.dataframe[,"SybrGreen.A"], xlab="log(SSC.A) [arbitratry unit]", ylab="log(Chlorophyll.A) [arbitratry unit]", zlab="log(SybrGreen.A) [arbitratry unit]", sphere.size=0.1, groups = gate.dataframe$gate, axis.col=c("black","black","black"), surface.col=get.color(gate.dataframe), surface=FALSE)
 				+ legend3d("topright", legend = c(paste(stn.id[Index],"_", Smp.depth[Index], " (", total.count[Index], " events)", sep=""), " ", levels(gate.dataframe$gate), " ", paste("beads count : ", beads.count[Index], sep=""), paste("Abundance : ", abond, " events/mL", sep="")), pch = 16, col = c("white", "white", get.color(gate.dataframe), "white","white","white"), cex=1, inset=c(0.01))
@@ -366,15 +410,19 @@ path3D3 <- paste(path3D,"/Chlorophyll_vs_SYBRGREEN_vs_PE", sep="")
 				print(writeWebGL(filename = paste(path3D3, "/",today, "_3Dplot_Chlorophyll-SYBRGREEN-PE_", liste.stations[station], "_", Smp.depth[Index], ".html", sep="")))
 				
 			
+			
 		}
+		
+		print(rgl.close())
 
 }
 
 Abundance <- (total.count - noise.count - beads.count)/(beads.count/1080000)
 
+
 ###CREATION OF A CSV FILE TO STORE THE DATA	
 	csv.name <- paste(csv.path, today, csv.name, sep="")
-	results <- cbind(Samp.Name, stn.lane, stn.name, stn.id, stn.lat, stn.lon, stn.max.depth, Smp.depth, total.count, beads.count, noise.count, Noise.gating.type, Abundance)
+	results <- cbind(Samp.Name, stn.lane, stn.name, stn.id, stn.lat, stn.lon, stn.max.depth, Smp.depth, total.count, beads.count, noise.count, Noise.gating.type, Eval.Cluster, Abundance)
 	write.csv(results,csv.name)	
 
 
