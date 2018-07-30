@@ -13,7 +13,7 @@
 	img.path <- '/Users/bland/Desktop/Flow-cytometry_data/Output/Figures/Plots/3D_plots/' #Path of the folder containing the PDF Files for the results
 	csv.name <- "_Summary_after_automatic_gating.csv" #Name of the CSV file containing the results
 	pdf.name <- "_Plots_with_gating.pdf" #Name of the pdf containing the plots with the gates
-	#liste.stations <- c('FX1', 'FX2', 'FX4', 'FX5', 'FX6', 'FX7','FX8', 'FX9','HB1','HB2','HB3','HB4','HB5','IH1','IH2', 'IH3','KG1','KG2','KG3','KG4','KG5','KG6','KR1','KR2','KR3','KR4','KR5','KR6','LA1','LA2','LA3','LA4','LA5','LA6','LA7','LA8','LB1','LB2','LB3','LB4','LB5','LB6','LB7','LB8','LB9','LB10','LN1','LN2','LN3','LN4','LN5','LN6','MS1','MS2','MS3','MS4','MS5','MS6','SB2','SB3','SB4','SI1','SI2','SI3','SI4','SI5','SI6','SI7','SI8','ST1','ST2','ST3','ST5') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
+	liste.stations <- c('FX1', 'FX2', 'FX4', 'FX5', 'FX6', 'FX7','FX8', 'FX9','HB1','HB2','HB3','HB4','HB5','IH1','IH2', 'IH3','KG1','KG2','KG3','KG4','KG5','KG6','KR1','KR2','KR3','KR4','KR5','KR6','LA1','LA2','LA3','LA4','LA5','LA6','LA7','LA8','LB1','LB2','LB3','LB4','LB5','LB6','LB7','LB8','LB9','LB10','LN1','LN2','LN3','LN4','LN5','LN6','MS1','MS2','MS3','MS4','MS5','MS6','SB2','SB3','SB4','SI1','SI2','SI3','SI4','SI5','SI6','SI7','SI8','ST1','ST2','ST3','ST5') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
 	
 	today <- '20180730'
 
