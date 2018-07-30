@@ -14,21 +14,16 @@
 	csv.name <- "_Summary_after_automatic_gating.csv" #Name of the CSV file containing the results
 	pdf.name <- "_Plots_with_gating.pdf" #Name of the pdf containing the plots with the gates
 	#liste.stations <- c('FX1', 'FX2', 'FX4', 'FX5', 'FX6', 'FX7','FX8', 'FX9','HB1','HB2','HB3','HB4','HB5','IH1','IH2', 'IH3','KG1','KG2','KG3','KG4','KG5','KG6','KR1','KR2','KR3','KR4','KR5','KR6','LA1','LA2','LA3','LA4','LA5','LA6','LA7','LA8','LB1','LB2','LB3','LB4','LB5','LB6','LB7','LB8','LB9','LB10','LN1','LN2','LN3','LN4','LN5','LN6','MS1','MS2','MS3','MS4','MS5','MS6','SB2','SB3','SB4','SI1','SI2','SI3','SI4','SI5','SI6','SI7','SI8','ST1','ST2','ST3','ST5') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
-	#liste.stations <- c('SI1','SI2','SI3','SI4','SI5','SI6','SI7','SI8','ST1','ST2','ST3','ST5') #List of the keywords of the stations to analyse ###be sure that all the FCS files corresponding to the stations are in the folder and that the keywords correspond to a unique station
-	liste.stations <- c('LB2')
 	
-	today <- '20180702'
-	
-	#MINIMAL NUMBER OF BEADS AND EVENT
-	minEvents <- 9999 #minimal number of events
-	minBeads <- 999 #minimal number of beads
+	today <- '20180730'
+
 	
 	#TYPE OF TRANSFORMATION
 	Transfo.type <- logTransform(transformationId="LogTransform", logbase=10, r=1, d=1) #Type of transformation
 	to.transform <- c('FSC.A', 'SSC.A', 'Chlorophyll.A', 'SybrGreen.A', 'PE.A') #List of the names of the measurement parameters on which the transformations have to be performed
 	
 	#INFORMATIONS ABOUT THE STATIONS
-	Infos.path <- '/Users/bland/Desktop/Flow-cytometry_data/Summary_stations/hydrostn.csv' #Path of the csv file containing the informations about the stations
+	Infos.path <- '/Users/bland/Desktop/Flow-cytometry_data/Summary_stations/hydrostndec.csv' #Path of the csv file containing the informations about the stations
 	
 	Infos1 <- read.csv(Infos.path, sep=';', header=TRUE)
 	Infos <- as.matrix(Infos1)
@@ -208,7 +203,7 @@ Find.BandN.Gate <- function(barcode1){ #This function is able to sort the differ
 	propor <- sum(subdata$SSC.A < 2 & subdata$PE.A < 2 & subdata$Chlorophyll.A < 3.15)
 	propor2 <- sum(barcode$SSC.A < 2 & barcode$PE.A < 2 & barcode$Chlorophyll.A < 3.15)
 	
-	if(propor < 0.7*nrow(subdata) | propor < 0,7*propor2){ #Quality control of the noise gate --> The gate will be determined manually if the clustering gating wasn't well performed
+	if(propor < 0.7*nrow(subdata) | propor < 0.7*propor2){ #Quality control of the noise gate --> The gate will be determined manually if the clustering gating wasn't well performed
 
 	levels(barcode$gate)[levels(barcode$gate)=="Noise gate"] <- "Non-gated"
 	
